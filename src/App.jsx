@@ -300,7 +300,8 @@ function App() {
                 <div className="empty-state">
                   <Download size={42} />
                   <h2>Arraste um link ou cole a URL para começar.</h2>
-                  <p>O app carrega título, capa, duração, formatos e tamanhos antes do download.</p>
+                  <p>O app carrega título, capa, duração, formatos e tamanhos antes do download.
+                  mas para isso, vc necessáriamente precisará adicionar um cookie.txt no seu vscode com seus cookies para burlar o sistema do youtube</p>
                 </div>
               )}
             </article>
