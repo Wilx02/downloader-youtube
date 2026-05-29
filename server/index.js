@@ -30,18 +30,44 @@ fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
-function isLikelyYouTubeUrl(value) {
+const PLATFORMS = {
+  youtube: {
+    label: 'YouTube',
+    titleFallback: 'Video do YouTube',
+    hosts: ['youtube.com', 'youtu.be', 'music.youtube.com']
+  },
+  pinterest: {
+    label: 'Pinterest',
+    titleFallback: 'Conteudo do Pinterest',
+    hosts: ['pinterest.com', 'pin.it']
+  }
+};
+
+function cleanHostname(hostname) {
+  return hostname.replace(/^(www\.|m\.)/, '');
+}
+
+function platformFromUrl(value) {
   try {
     const url = new URL(value);
-    return ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'music.youtube.com'].includes(url.hostname);
+    const hostname = cleanHostname(url.hostname);
+    return Object.entries(PLATFORMS).find(([, platform]) => (
+      platform.hosts.some((host) => hostname === host || hostname.endsWith(`.${host}`))
+    ))?.[0] || null;
   } catch {
-    return false;
+    return null;
   }
 }
 
-function normalizeYouTubeUrl(value, playlist = false) {
+function isSupportedPlatformUrl(value, platform) {
+  return platformFromUrl(value) === platform;
+}
+
+function normalizeUrl(value, platform, playlist = false) {
+  if (platform !== 'youtube') return new URL(value).toString();
+
   const url = new URL(value);
-  if (url.hostname === 'youtu.be') {
+  if (cleanHostname(url.hostname) === 'youtu.be') {
     const id = url.pathname.replace('/', '');
     return `https://www.youtube.com/watch?v=${id}`;
   }
@@ -89,8 +115,9 @@ function cookiesFilePath() {
   const customPath = process.env.YTDLP_COOKIES_FILE;
   if (customPath && fs.existsSync(customPath)) return customPath;
 
-  const projectPath = path.join(ROOT_DIR, 'cookies.txt');
-  if (fs.existsSync(projectPath)) return projectPath;
+  const projectPaths = [path.join(ROOT_DIR, 'cookies.txt'), path.join(ROOT_DIR, 'cookie.txt')];
+  const projectPath = projectPaths.find((candidate) => fs.existsSync(candidate));
+  if (projectPath) return projectPath;
 
   return null;
 }
@@ -310,13 +337,14 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.post('/api/analyze', async (req, res) => {
-  const { url, playlist = false } = req.body || {};
-  if (!url || !isLikelyYouTubeUrl(url)) {
-    return res.status(400).json({ error: 'Cole um link valido do YouTube.' });
+  const { url, platform = 'youtube', playlist = false } = req.body || {};
+  const config = PLATFORMS[platform];
+  if (!config || !url || !isSupportedPlatformUrl(url, platform)) {
+    return res.status(400).json({ error: `Cole um link valido do ${config?.label || 'servico escolhido'}.` });
   }
 
   try {
-    const normalizedUrl = normalizeYouTubeUrl(url, playlist);
+    const normalizedUrl = normalizeUrl(url, platform, playlist);
     const info = await runYtdlpJsonWithFallback(normalizedUrl, {
       dumpSingleJson: true,
       skipDownload: true,
@@ -331,10 +359,11 @@ app.post('/api/analyze', async (req, res) => {
     const profiles = buildProfiles(source);
     res.json({
       id: source.id,
-      title: info.title || source.title || 'Video do YouTube',
+      platform,
+      title: info.title || source.title || config.titleFallback,
       thumbnail: bestThumbnail(source),
       duration: source.duration || null,
-      durationLabel: source.duration ? secondsToClock(source.duration) : 'Playlist',
+      durationLabel: source.duration ? secondsToClock(source.duration) : (playlistItems ? 'Playlist' : 'Indisponivel'),
       webpageUrl: source.webpage_url || normalizedUrl,
       playlistItems,
       ...profiles
@@ -356,13 +385,14 @@ app.post('/api/analyze', async (req, res) => {
 });
 
 app.post('/api/downloads', async (req, res) => {
-  const { url, quality = 'best', mode = 'video-audio', container = 'mp4', subtitles = false, playlist = false, title = '' } = req.body || {};
-  if (!url || !isLikelyYouTubeUrl(url)) {
-    return res.status(400).json({ error: 'Cole um link valido do YouTube.' });
+  const { url, platform = 'youtube', quality = 'best', mode = 'video-audio', container = 'mp4', subtitles = false, playlist = false, title = '' } = req.body || {};
+  const config = PLATFORMS[platform];
+  if (!config || !url || !isSupportedPlatformUrl(url, platform)) {
+    return res.status(400).json({ error: `Cole um link valido do ${config?.label || 'servico escolhido'}.` });
   }
 
   const jobId = crypto.randomUUID();
-  const normalizedUrl = normalizeYouTubeUrl(url, playlist);
+  const normalizedUrl = normalizeUrl(url, platform, playlist);
   const options = buildYtdlpOptions({ quality, mode, container, subtitles, playlist });
   let child;
   try {

@@ -1,6 +1,6 @@
 # NeonTube Downloader
 
-Aplicativo local para analisar e baixar videos do YouTube com qualidade selecionavel, audio MP3, legendas, playlists, progresso em tempo real e cancelamento.
+Aplicativo local para analisar e baixar videos do YouTube e Pinterest com qualidade selecionavel, audio MP3, legendas, playlists do YouTube, progresso em tempo real e cancelamento.
 
 ## Requisitos
 
@@ -31,5 +31,5 @@ C:\Users\<seu-usuario>\Downloads\NeonTube
 
 - O `npm install` baixa automaticamente o `yt-dlp.exe` para `bin/`.
 - O app usa `ffmpeg-static` para mesclar video/audio e converter MP3 ou legendas quando necessario.
-- Se o YouTube pedir login, exporte seus cookies para um arquivo `cookies.txt` e coloque na raiz do projeto, ao lado do `package.json`. Tambem da para usar `YTDLP_COOKIES_FILE=C:\caminho\cookies.txt`.
+- Se o YouTube pedir login, exporte seus cookies para um arquivo `cookies.txt` ou `cookie.txt` e coloque na raiz do projeto, ao lado do `package.json`. Tambem da para usar `YTDLP_COOKIES_FILE=C:\caminho\cookies.txt`.
 - Respeite os termos das plataformas e baixe apenas conteudos que voce tem permissao para salvar.
