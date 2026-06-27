@@ -1,6 +1,6 @@
 # NeonTube Downloader
 
-Aplicativo local para analisar e baixar videos do YouTube e Pinterest com qualidade selecionavel, audio MP3, legendas, playlists do YouTube, progresso em tempo real e cancelamento.
+Aplicativo local para analisar e baixar videos do YouTube com qualidade selecionavel, audio MP3, legendas, playlists, progresso em tempo real e cancelamento.
 
 ## Requisitos
 

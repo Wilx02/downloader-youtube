@@ -1,6 +1,5 @@
 import {
   Activity,
-  Captions,
   Check,
   Clock3,
   Download,
@@ -8,7 +7,6 @@ import {
   FileVideo,
   Gauge,
   History,
-  Images,
   Link2,
   Loader2,
   Music2,
@@ -18,8 +16,7 @@ import {
   RotateCcw,
   ShieldAlert,
   Sparkles,
-  Video,
-  Youtube
+  Video
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -37,11 +34,6 @@ const modeOptions = [
   { label: 'Vídeo + áudio', value: 'video-audio', icon: FileVideo },
   { label: 'Sem áudio', value: 'video-only', icon: Video },
   { label: 'MP3', value: 'audio', icon: FileAudio }
-];
-
-const platformOptions = [
-  { label: 'YouTube', value: 'youtube', icon: Youtube, placeholder: 'Cole aqui o link do YouTube' },
-  { label: 'Pinterest', value: 'pinterest', icon: Images, placeholder: 'Cole aqui o link do Pinterest' }
 ];
 
 function formatBytes(bytes) {
@@ -66,7 +58,6 @@ function storedHistory() {
 
 function App() {
   const [url, setUrl] = useState('');
-  const [platform, setPlatform] = useState('youtube');
   const [video, setVideo] = useState(null);
   const [quality, setQuality] = useState('best');
   const [mode, setMode] = useState('video-audio');
@@ -106,13 +97,6 @@ function App() {
   }, [history]);
 
   useEffect(() => {
-    if (platform === 'pinterest') {
-      setPlaylist(false);
-      setSubtitles(false);
-    }
-  }, [platform]);
-
-  useEffect(() => {
     const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
     const ws = new WebSocket(wsUrl);
     ws.onmessage = (event) => {
@@ -138,7 +122,7 @@ function App() {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: nextUrl.trim(), platform, playlist })
+        body: JSON.stringify({ url: nextUrl.trim(), playlist })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -160,7 +144,6 @@ function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url,
-        platform,
         title: video.title,
         quality,
         mode,
@@ -181,7 +164,6 @@ function App() {
       mode,
       quality,
       container: mode === 'audio' ? 'mp3' : container,
-      platform,
       date: new Date().toLocaleString('pt-BR')
     };
     setHistory((items) => [item, ...items.filter((old) => old.id !== item.id)].slice(0, 8));
@@ -207,7 +189,6 @@ function App() {
 
   const canDownload = video && !['starting', 'downloading', 'processing'].includes(job?.status);
   const progress = Math.min(100, Math.max(0, job?.percent || 0));
-  const selectedPlatform = platformOptions.find((item) => item.value === platform) || platformOptions[0];
 
   return (
     <main
@@ -270,23 +251,6 @@ function App() {
           </header>
 
           <section className="url-panel">
-            <div className="platform-tabs" aria-label="Escolha a plataforma">
-              {platformOptions.map(({ label, value, icon: Icon }) => (
-                <button
-                  key={value}
-                  className={platform === value ? 'platform-tab active' : 'platform-tab'}
-                  type="button"
-                  onClick={() => {
-                    setPlatform(value);
-                    setVideo(null);
-                    setError('');
-                  }}
-                >
-                  <Icon size={18} />
-                  {label}
-                </button>
-              ))}
-            </div>
             <div className="input-wrap">
               <Link2 size={21} />
               <input
@@ -295,7 +259,7 @@ function App() {
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') analyze();
                 }}
-                placeholder={selectedPlatform.placeholder}
+                placeholder="Cole aqui o link do YouTube"
               />
               <button className="primary" onClick={() => analyze()} disabled={!url || analysisState === 'loading'}>
                 {analysisState === 'loading' ? <Loader2 className="spin" size={18} /> : <Play size={18} />}
@@ -303,8 +267,8 @@ function App() {
               </button>
             </div>
             <div className="toggles">
-              <label><input type="checkbox" checked={playlist} disabled={platform !== 'youtube'} onChange={(event) => setPlaylist(event.target.checked)} /> Playlist</label>
-              <label><input type="checkbox" checked={subtitles} disabled={platform !== 'youtube'} onChange={(event) => setSubtitles(event.target.checked)} /> Legendas</label>
+              <label><input type="checkbox" checked={playlist} onChange={(event) => setPlaylist(event.target.checked)} /> Playlist</label>
+              <label><input type="checkbox" checked={subtitles} onChange={(event) => setSubtitles(event.target.checked)} /> Legendas</label>
             </div>
           </section>
 

@@ -7,7 +7,11 @@ import ffmpegPath from 'ffmpeg-static';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ytdlp = path.join(root, 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
-const cookies = process.env.YTDLP_COOKIES_FILE || path.join(root, 'cookies.txt');
+const cookieCandidates = [
+  process.env.YTDLP_COOKIES_FILE,
+  path.join(root, 'cookies.txt'),
+  path.join(root, 'cookie.txt')
+].filter(Boolean);
 const downloads = path.join(os.homedir(), 'Downloads', 'NeonTube');
 
 function ok(label, detail = '') {
@@ -37,11 +41,12 @@ exists(ffmpegPath) ? ok('ffmpeg encontrado', ffmpegPath) : fail('ffmpeg nao enco
 if (!fs.existsSync(downloads)) fs.mkdirSync(downloads, { recursive: true });
 ok('pasta de downloads', downloads);
 
-if (exists(cookies)) {
+const cookies = cookieCandidates.find(exists);
+if (cookies) {
   const size = fs.statSync(cookies).size;
-  size > 100 ? ok('cookies.txt encontrado', cookies) : warn('cookies.txt parece vazio', cookies);
+  size > 100 ? ok('arquivo de cookies encontrado', cookies) : warn('arquivo de cookies parece vazio', cookies);
 } else {
-  warn('cookies.txt nao encontrado', 'links que exigem login podem falhar');
+  warn('cookies.txt/cookie.txt nao encontrado', 'links que exigem login podem falhar');
 }
 
 if (exists(ytdlp)) {
